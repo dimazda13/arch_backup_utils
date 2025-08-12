@@ -2,21 +2,22 @@
 
 set -euo pipefail
 
-VERSION="1.0.0"
+VERSION="1.0.1"
 PROGNAME="$(basename "$0")"
 
 usage() {
 	cat<<EOF
 $PROGNAME version $VERSION
 
-Usage: $PROGNAME [options] [archive]
+Usage: sudo $PROGNAME [options] [archive]
 
 Options:
     -h, --help		-Show this help message
     -V, --version 	-Show script version
 
-Example $PROGNAME
-	$PROGNAME 2025-08-12_12-49-54.tar.gz
+Example sudo $PROGNAME
+	sudo $PROGNAME 2025-08-12_12-49-54.tar.gz
+	$PROGNAME -V
 
 EOF
 }
@@ -71,28 +72,30 @@ fi
 TMP_DIR="$HOME/tmp_restore_$(date +%s)"
 mkdir -p "$TMP_DIR"
 tar -xzf "$ARCHIVE" -C "$TMP_DIR"
-BACKUP_DIR="$TMP_DIR/$(basename "ARCHIVE" .tar.gz)"
+BACKUP_DIR="$TMP_DIR/$(basename "$ARCHIVE" .tar.gz)"
+
+set +x
 
 if [ -f "$BACKUP_DIR/pkglist.txt" ]; then
 	echo "[*] Installing packages from pacman ..."
-	sudo pacman -S --needed - < "$BACKUP_DIR/pkglist.txt"
+	pacman -S --needed - < "$BACKUP_DIR/pkglist.txt" || true
 fi
 
 if [ -f "$BACKUP_DIR/aur_pkglist.txt" ]; then
 	if command -v yay >/dev/null 2>&1; then
 		echo "[*] Installing AUR packages from yay"
-		yay -S --needed - < "$BACKUP_DIR/aur_pkglist.txt"
+		yay -S --needed - < "$BACKUP_DIR/aur_pkglist.txt" || true
 	elif command -v paru >/dev/null 2>&1; then
 		echo "[*] Installing AUR packages from yay"
-		paru -S --needed - < "$BACKUP_DIR/aur_pkglist.txt"
+		paru -S --needed - < "$BACKUP_DIR/aur_pkglist.txt" || true
 	fi
 fi
 
 if [ -d "$BACKUP_DIR/etc" ]; then
 	echo "[*] Create a backip copy of the current /etc"
-	sudo cp -a /etc "$HOME/etc.backup_$(date +%Y-%m-%d_%H-%M-%S)"
+	cp -a /etc "$HOME/etc.backup_$(date +%Y-%m-%d_%H-%M-%S)"
 	echo "[*] Copy configs to /etc"
-	sudo rsync -aAX "$BACKUP_DIR/etc/" /etc/
+	rsync -aAX "$BACKUP_DIR/etc/" /etc/
 fi
 
 if [ -d "$BACKUP_DIR/home_configs" ]; then
@@ -100,6 +103,6 @@ if [ -d "$BACKUP_DIR/home_configs" ]; then
 	rsync -aAX "$BACKUP_DIR/home_configs/" "$HOME/"
 fi
 
-sudo rm -rf "$TMP_DIR"
+rm -rf "$TMP_DIR"
 
 echo "Restore complete"

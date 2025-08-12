@@ -2,7 +2,7 @@
 
 set -e
 
-VERSION="1.0.0"
+VERSION="1.0.1"
 PROGNAME="$(basename "$0")"
 
 usage() {
@@ -15,7 +15,7 @@ Options:
     -V, --version	Show script version
     -h, --help		Show this help message
 
-Example $PROGNAME
+Example sudo $PROGNAME
 	$PROGNAME -V
 
 EOF
@@ -57,16 +57,16 @@ else
 fi
 
 echo "[*] Copying configs from /etc"
-sudo rsync -aAX --exclude="*.cache" /etc/ "$BACKUP_DIR/etc"
+rsync -aAX --exclude="*.cache" /etc/ "$BACKUP_DIR/etc"
 
 echo "[*] Copying users configs"
-sudo rsync -aAX --ignore-missing-args --exclude="*.cache" --exclude="*/node_modules" "$HOME/.config" "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile" "$BACKUP_DIR/home_configs"
+rsync -aAX --ignore-missing-args --exclude="*.cache" --exclude="*/node_modules" "$HOME/.config" "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile" "$BACKUP_DIR/home_configs"
 
 echo "[*] Saving system information"
 uname -a > "$BACKUP_DIR/system_info.txt"
 
 echo "[*] Backup archiving"
-sudo tar -czf "$ARCHIVE_FILE" -C "$BACKUP_ROOT" "$DATE"
+tar -czf "$ARCHIVE_FILE" -C "$BACKUP_ROOT" "$DATE"
 
 echo "[*] Integrity checksum"
 sha256sum "$ARCHIVE_FILE" > "$ARCHIVE_FILE.sha256"
@@ -75,9 +75,9 @@ echo "[*] Deleting old backups"
 cd "$BACKUP_ROOT"
 while [ $(ls -1 | grep -E '\.tar\.gz$' | wc -l) -gt $MAX_BACKUPS ]; do
 	OLDEST=$(ls -1tr | grep -E '\.tar\.gz$' | head -n 1)
-	sudo rm -f "$OLDEST" "${OLDEST%.tar.gz}.sha256"
+	rm -f "$OLDEST" "${OLDEST%.tar.gz}.sha256"
 done
 
-sudo rm -rf "$BACKUP_DIR"
+rm -rf "$BACKUP_DIR"
 
 echo "Backup complete"
