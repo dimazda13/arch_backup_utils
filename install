@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+
+echo "[*] Installing dependencies"
+sudo pacman -S rsync
+sudo cp arch-backup /usr/local/bin
+sudo cp arch-restore /usr/local/bin
