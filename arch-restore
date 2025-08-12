@@ -1,0 +1,59 @@
+#!/bin/bash
+
+set -e
+
+BACKUP_ROOT="$HOME/backup"
+
+if [ -n "$1" ]; then
+	ARCHIVE="$1"
+else
+	ARCHIVE=$(ls -1t "$BACKUP_ROOT"/*.tar.gz 2>/dev/null | head -n 1)
+	if [ -z "$ARCHIVE" ]; then
+		echo "[!] Backups not found in $BACKUP_ROOT"
+		exit 1
+	fi
+	echo "[*] Using latest backup: $ARCHIVE"
+fi
+
+if [ ! -f "$ARCHIVE" ]; then
+	echo "[!] Archive $ARCHIVE not found"
+	exit 1
+fi
+
+if [ -f "$ARCHIVE.sha256" ]; then
+	echo "[*] Checking archive integrity"
+	sha256sum -c "$ARCHIVE.sha256" || { echo "[!] ERROR: Arcive is damaged!"; exit 1; }
+else
+	echo "[!] Checksum not found"
+fi
+
+TMP_DIR="$HOME/tmp_restore_$(date +%s)"
+mkdir -p "$TMP_DIR"
+tar -xzf "$ARCHIVE" -C "$TMP_DIR"
+BACKUP_DIR="$TMP_DIR/$(basename "ARCHIVE" .tar.gz)"
+
+if [ -f "$BACKUP_DIR/pkglist.txt" ]; then
+	echo "[*] Installing packages from pacman ..."
+	sudo pacman -S --needed - < "$BACKUP_DIR/pkglist.txt"
+fi
+
+if [ -f "$BACKUP_DIR/aur_pkglist.txt" ]; then
+	if command -v yay >/dev/null 2>&1; then
+		echo "[*] Installing AUR packages from yay"
+		yay -S --needed - < "$BACKUP_DIR/aur_pkglist.txt"
+	elif command -v paru >/dev/null 2>&1; then
+		echo "[*] Installing AUR packages from yay"
+		paru -S --needed - < "$BACKUP_DIR/aur_pkglist.txt"
+	fi
+fi
+
+if [ -d "$BACKUP_DIR/etc" ]; then
+	echo "[*] Create a backip copy of the current /etc"
+	sudo cp -a /etc "$HOME/etc.backup_$(date +%Y-%m-%d_%H-%M-%S)"
+	echo "[*] Copy configs to /etc"
+	sudo rsync -aAX "$BACKUP_DIR/etc/" /etc/
+fi
+
+sudo rm -rf "$TMP_DIR"
+
+echo "Restore complete"
