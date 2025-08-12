@@ -54,6 +54,11 @@ if [ -d "$BACKUP_DIR/etc" ]; then
 	sudo rsync -aAX "$BACKUP_DIR/etc/" /etc/
 fi
 
+if [ -d "$BACKUP_DIR/home_configs" ]; then
+	echo "[*] Copy configs to $HOME"
+	rsync -aAX "$BACKUP_DIR/home_configs/" "$HOME/"
+fi
+
 sudo rm -rf "$TMP_DIR"
 
 echo "Restore complete"

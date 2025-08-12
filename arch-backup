@@ -27,6 +27,9 @@ fi
 echo "[*] Copying configs from /etc"
 sudo rsync -aAX --exclude="*.cache" /etc/ "$BACKUP_DIR/etc"
 
+echo "[*] Copying users configs"
+sudo rsync -aAX --exclude="*.cache" --exclude="*/node_modules" "$HOME/.config" "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile" "$BACKUP_DIR/home_configs"
+
 echo "[*] Saving system information"
 uname -a > "$BACKUP_DIR/system_info.txt"
 
